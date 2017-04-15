@@ -18,19 +18,19 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
     std::default_random_engine gen;
-    num_particles = 1000;
+    num_particles = 200;
     
     std::normal_distribution<double> dist_x(x, std[0]);
     std::normal_distribution<double> dist_y(y, std[1]);
     std::normal_distribution<double> dist_yaw(theta, std[2]);
-
+    
     for (int i = 0; i < num_particles; ++i) {
         double particle_x = dist_x(gen);
         double particle_y = dist_y(gen);
         double particle_yaw = dist_yaw(gen);
         Particle temp = {i, particle_x, particle_y, particle_yaw, 1.0};
         particles.push_back(temp);
-        weights.push_back(1.0); 
+        weights.push_back(1.0f); 
     }
     is_initialized = true;
 }
@@ -117,16 +117,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         Particle& particle = particles[i];
         std::vector<LandmarkObs> predicted;
         std::vector<LandmarkObs> associations;
-        double weight = 1;
+        double weight = 1.0;
 
         // Transformation step.
-        // TODO Modify coordination equation.
         for (int j = 0; j < observations.size(); ++j) {
             LandmarkObs landmark_pred;
             landmark_pred.id = observations[j].id;
-            landmark_pred.x = observations[j].x * cos(particle.theta) + 
+            landmark_pred.x = observations[j].x * cos(particle.theta) - 
                 observations[j].y * sin(particle.theta) + particle.x;
-            landmark_pred.y = - observations[j].x * sin(particle.theta) +
+            landmark_pred.y = observations[j].x * sin(particle.theta) +
                 observations[j].y * cos(particle.theta) + particle.y;
             predicted.push_back(landmark_pred);
         }
@@ -147,6 +146,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             weight *= p_x_y;
         }
         particle.weight = weight;
+        weights[i] = weight;
     }
 }
 
@@ -154,7 +154,13 @@ void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+    std::default_random_engine gen;
+    std::discrete_distribution<> dd(weights.begin(), weights.end());
+    std::vector<Particle> newParticles;
+    for (int i = 0; i < num_particles; ++i)
+        newParticles.push_back(particles[dd(gen)]);
 
+    particles = newParticles;
 }
 
 void ParticleFilter::write(std::string filename) {
