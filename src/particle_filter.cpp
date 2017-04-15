@@ -53,7 +53,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
         particle.theta = theta + yaw_rate * delta_t;
 
-        if (yaw_rate > 0.0001) {
+        if (yaw_rate > 0.00001) {
             double radius = velocity / yaw_rate;
             particle_x += radius * ( sin(particle.theta) - sin(theta) );
             particle_y += radius * ( cos(theta) - cos(particle.theta) );
@@ -68,12 +68,36 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     }
 }
 
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
+void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted,
+                                     Map map_landmarks,
+                                     std::vector<LandmarkObs>& associations) {
 	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the 
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
+    for (int i = 0; i < predicted.size(); ++i) {
+        LandmarkObs association;
+        double min_distance_square;
+        
+        association.id = map_landmarks.landmark_list[0].id_i;
+        association.x = map_landmarks.landmark_list[0].x_f;
+        association.y = map_landmarks.landmark_list[0].y_f;
+        min_distance_square = pow((map_landmarks.landmark_list[0].x_f - predicted[i].x), 2) + 
+            pow((map_landmarks.landmark_list[0].y_f - predicted[i].y), 2);
+        
+        for (int j = 1; j < map_landmarks.landmark_list.size(); ++j) {
+            double distance_square = pow((map_landmarks.landmark_list[j].x_f - predicted[i].x), 2) + 
+                pow((map_landmarks.landmark_list[j].y_f - predicted[i].y), 2);
+            if (distance_square < min_distance_square) {
+                min_distance_square = distance_square;
+                association.id = map_landmarks.landmark_list[j].id_i;
+                association.x = map_landmarks.landmark_list[j].x_f;
+                association.y = map_landmarks.landmark_list[j].y_f;
+            }
+        }
 
+        associations.push_back(association);
+    }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -89,6 +113,41 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33. Note that you'll need to switch the minus sign in that equation to a plus to account 
 	//   for the fact that the map's y-axis actually points downwards.)
 	//   http://planning.cs.uiuc.edu/node99.html
+    for (int i = 0; i < num_particles; ++i) {
+        Particle& particle = particles[i];
+        std::vector<LandmarkObs> predicted;
+        std::vector<LandmarkObs> associations;
+        double weight = 1;
+
+        // Transformation step.
+        // TODO Modify coordination equation.
+        for (int j = 0; j < observations.size(); ++j) {
+            LandmarkObs landmark_pred;
+            landmark_pred.id = observations[j].id;
+            landmark_pred.x = observations[j].x * cos(particle.theta) + 
+                observations[j].y * sin(particle.theta) + particle.x;
+            landmark_pred.y = - observations[j].x * sin(particle.theta) +
+                observations[j].y * cos(particle.theta) + particle.y;
+            predicted.push_back(landmark_pred);
+        }
+
+        // Associations step.
+        dataAssociation(predicted, map_landmarks, associations);
+
+        // Calculating particle's final weight.
+        for (int j = 0; j < predicted.size(); ++j) {
+            LandmarkObs predict = predicted[j];
+            LandmarkObs association = associations[j];
+            double delta_x = predict.x - association.x;
+            double delta_y = predict.y - association.y;
+            
+            double p_x_y = 1 / (2 * M_PI * std_landmark[0] * std_landmark[0]) *
+                exp(-(delta_x * delta_x / (2 * std_landmark[0] * std_landmark[0]) +
+                      delta_y * delta_y / (2 * std_landmark[0] * std_landmark[0])));
+            weight *= p_x_y;
+        }
+        particle.weight = weight;
+    }
 }
 
 void ParticleFilter::resample() {
