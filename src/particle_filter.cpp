@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
-
+#include <cmath>
 #include "particle_filter.h"
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
@@ -40,7 +40,32 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
+    std::default_random_engine gen;
+    std::normal_distribution<double> dist_x(0.0, std_pos[0]);    
+    std::normal_distribution<double> dist_y(0.0, std_pos[1]);
+    std::normal_distribution<double> dist_yaw(0.0, std_pos[2]);
 
+    for (int i = 0; i < num_particles; ++i) {
+        Particle& particle = particles[i];
+        double particle_x = particle.x;
+        double particle_y = particle.y;
+        double theta = particle.theta;
+
+        particle.theta = theta + yaw_rate * delta_t;
+
+        if (yaw_rate > 0.0001) {
+            double radius = velocity / yaw_rate;
+            particle_x += radius * ( sin(particle.theta) - sin(theta) );
+            particle_y += radius * ( cos(theta) - cos(particle.theta) );
+        } else {
+            particle_x += velocity * delta_t * cos(theta);
+            particle_y += velocity * delta_t * sin(theta);
+        }
+
+        particle.x = particle_x + dist_x(gen);
+        particle.y = particle_y + dist_y(gen);
+        particle.theta += dist_yaw(gen);
+    }
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
