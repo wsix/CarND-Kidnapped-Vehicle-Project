@@ -15,8 +15,6 @@
 
 using namespace std;
 
-
-
 int main() {
 	
 	// parameters related to grading.
