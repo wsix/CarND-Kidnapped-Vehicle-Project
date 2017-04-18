@@ -13,24 +13,24 @@
 #include "particle_filter.h"
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
-	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
+	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of
+	//   x, y, theta and their uncertainties from GPS) and all weights to 1.
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
     std::default_random_engine gen;
     num_particles = 400;
-    
+
     std::normal_distribution<double> dist_x(x, std[0]);
     std::normal_distribution<double> dist_y(y, std[1]);
     std::normal_distribution<double> dist_yaw(theta, std[2]);
-    
+
     for (int i = 0; i < num_particles; ++i) {
         double particle_x = dist_x(gen);
         double particle_y = dist_y(gen);
         double particle_yaw = dist_yaw(gen);
         Particle temp = {i, particle_x, particle_y, particle_yaw, 1.0};
         particles.push_back(temp);
-        weights.push_back(1.0f); 
+        weights.push_back(1.0f);
     }
     is_initialized = true;
 }
@@ -41,7 +41,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
     std::default_random_engine gen;
-    std::normal_distribution<double> dist_x(0.0, std_pos[0]);    
+    std::normal_distribution<double> dist_x(0.0, std_pos[0]);
     std::normal_distribution<double> dist_y(0.0, std_pos[1]);
     std::normal_distribution<double> dist_yaw(0.0, std_pos[2]);
 
@@ -68,39 +68,39 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     }
 }
 
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted,
-                                     Map map_landmarks,
-                                     std::vector<LandmarkObs>& associations) {
-	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the 
-	//   observed measurement to this particular landmark.
-	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
-	//   implement this method and use it as a helper during the updateWeights phase.
-    for (int i = 0; i < predicted.size(); ++i) {
-        LandmarkObs association;
-        double min_distance_square;
-        
-        association.id = map_landmarks.landmark_list[0].id_i;
-        association.x = map_landmarks.landmark_list[0].x_f;
-        association.y = map_landmarks.landmark_list[0].y_f;
-        min_distance_square = pow((map_landmarks.landmark_list[0].x_f - predicted[i].x), 2) + 
-            pow((map_landmarks.landmark_list[0].y_f - predicted[i].y), 2);
-        
-        for (int j = 1; j < map_landmarks.landmark_list.size(); ++j) {
-            double distance_square = pow((map_landmarks.landmark_list[j].x_f - predicted[i].x), 2) + 
-                pow((map_landmarks.landmark_list[j].y_f - predicted[i].y), 2);
-            if (distance_square < min_distance_square) {
-                min_distance_square = distance_square;
-                association.id = map_landmarks.landmark_list[j].id_i;
-                association.x = map_landmarks.landmark_list[j].x_f;
-                association.y = map_landmarks.landmark_list[j].y_f;
-            }
-        }
+// void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted,
+//                                      Map map_landmarks,
+//                                      std::vector<LandmarkObs>& associations) {
+// 	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the
+// 	//   observed measurement to this particular landmark.
+// 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
+// 	//   implement this method and use it as a helper during the updateWeights phase.
+//     for (int i = 0; i < predicted.size(); ++i) {
+//         LandmarkObs association;
+//         double min_distance_square;
 
-        associations.push_back(association);
-    }
-}
+//         association.id = map_landmarks.landmark_list[0].id_i;
+//         association.x = map_landmarks.landmark_list[0].x_f;
+//         association.y = map_landmarks.landmark_list[0].y_f;
+//         min_distance_square = pow((map_landmarks.landmark_list[0].x_f - predicted[i].x), 2) +
+//             pow((map_landmarks.landmark_list[0].y_f - predicted[i].y), 2);
 
-void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
+//         for (int j = 1; j < map_landmarks.landmark_list.size(); ++j) {
+//             double distance_square = pow((map_landmarks.landmark_list[j].x_f - predicted[i].x), 2) +
+//                 pow((map_landmarks.landmark_list[j].y_f - predicted[i].y), 2);
+//             if (distance_square < min_distance_square) {
+//                 min_distance_square = distance_square;
+//                 association.id = map_landmarks.landmark_list[j].id_i;
+//                 association.x = map_landmarks.landmark_list[j].x_f;
+//                 association.y = map_landmarks.landmark_list[j].y_f;
+//             }
+//         }
+
+//         associations.push_back(association);
+//     }
+// }
+
+void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		std::vector<LandmarkObs> observations, Map map_landmarks) {
 	// TODO: Update the weights of each particle using a mult-variate Gaussian distribution. You can read
 	//   more about this distribution here: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
@@ -109,8 +109,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   Keep in mind that this transformation requires both rotation AND translation (but no scaling).
 	//   The following is a good resource for the theory:
 	//   https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
-	//   and the following is a good resource for the actual equation to implement (look at equation 
-	//   3.33. Note that you'll need to switch the minus sign in that equation to a plus to account 
+	//   and the following is a good resource for the actual equation to implement (look at equation
+	//   3.33. Note that you'll need to switch the minus sign in that equation to a plus to account
 	//   for the fact that the map's y-axis actually points downwards.)
 	//   http://planning.cs.uiuc.edu/node99.html
     for (int i = 0; i < num_particles; ++i) {
@@ -123,7 +123,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         for (int j = 0; j < observations.size(); ++j) {
             LandmarkObs landmark_pred;
             landmark_pred.id = observations[j].id;
-            landmark_pred.x = observations[j].x * cos(particle.theta) - 
+            landmark_pred.x = observations[j].x * cos(particle.theta) -
                 observations[j].y * sin(particle.theta) + particle.x;
             landmark_pred.y = observations[j].x * sin(particle.theta) +
                 observations[j].y * cos(particle.theta) + particle.y;
@@ -131,7 +131,30 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         }
 
         // Associations step.
-        dataAssociation(predicted, map_landmarks, associations);
+        // dataAssociation(predicted, map_landmarks, associations);
+        for (int i = 0; i < predicted.size(); ++i) {
+            LandmarkObs association;
+            double min_distance_square;
+
+            association.id = map_landmarks.landmark_list[0].id_i;
+            association.x = map_landmarks.landmark_list[0].x_f;
+            association.y = map_landmarks.landmark_list[0].y_f;
+            min_distance_square = pow((map_landmarks.landmark_list[0].x_f - predicted[i].x), 2) +
+                pow((map_landmarks.landmark_list[0].y_f - predicted[i].y), 2);
+
+            for (int j = 1; j < map_landmarks.landmark_list.size(); ++j) {
+                double distance_square = pow((map_landmarks.landmark_list[j].x_f - predicted[i].x), 2) +
+                    pow((map_landmarks.landmark_list[j].y_f - predicted[i].y), 2);
+                if (distance_square < min_distance_square) {
+                    min_distance_square = distance_square;
+                    association.id = map_landmarks.landmark_list[j].id_i;
+                    association.x = map_landmarks.landmark_list[j].x_f;
+                    association.y = map_landmarks.landmark_list[j].y_f;
+                }
+            }
+
+            associations.push_back(association);
+        }
 
         // Calculating particle's final weight.
         for (int j = 0; j < predicted.size(); ++j) {
@@ -139,7 +162,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             LandmarkObs association = associations[j];
             double delta_x = predict.x - association.x;
             double delta_y = predict.y - association.y;
-            
+
             double p_x_y = 1 / (2 * M_PI * std_landmark[0] * std_landmark[0]) *
                 exp(-(delta_x * delta_x / (2 * std_landmark[0] * std_landmark[0]) +
                       delta_y * delta_y / (2 * std_landmark[0] * std_landmark[0])));
@@ -151,7 +174,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 }
 
 void ParticleFilter::resample() {
-	// TODO: Resample particles with replacement with probability proportional to their weight. 
+	// TODO: Resample particles with replacement with probability proportional to their weight.
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
     std::default_random_engine gen;
